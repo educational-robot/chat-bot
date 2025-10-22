@@ -1,0 +1,7 @@
+version: '3.0'
+
+services:
+  telegram-hook:
+    image: 'telegram-hook:v0.0.1'
+    container_name: 'telegram-hook'
+

@@ -3,35 +3,43 @@
 
 import base64
 import os
+from typing import List
+
 from google import genai
 from google.genai import types
+from google.genai.types import FunctionCall
+
+from server.core.config import settings
+from server.util import telegram_utils, function_calling
+from server.util.function_calling import GET_STUDENT_OVERALL, GET_ALL_LESSON, GET_ENROLLED_COURSES, GET_DETAIL_LESSON
 
 
-def generate(user_input: str):
+def generate(user_input: str, history: List[types.Content]):
     client = genai.Client(
-        api_key=os.environ.get("GEMINI_API_KEY","AIzaSyBLag43KZhWUYmfSkLl2A2mXWbWd4cHMRc"),
+        api_key=os.environ.get("GEMINI_API_KEY", settings.GEMINI_API_KEY),
     )
 
     model = "gemini-2.5-flash"
+    user_content = types.Content(
+        role="user",
+        parts=[
+            types.Part.from_text(text=user_input),
+        ],
+    )
     contents = [
-        types.Content(
-            role="user",
-            parts=[
-                types.Part.from_text(text=user_input),
-            ],
-        ),
+        user_content,
     ]
     tools = [
         types.Tool(
             function_declarations=[
                 types.FunctionDeclaration(
-                    name="get_all_lesson",
+                    name=GET_ALL_LESSON,
                     description="Gọi hàm này nếu phụ Huynh muốn biết các khóa học hiện tại trong bộ dữ liệu",
                     parameters=genai.types.Schema(),
                 ),
                 types.FunctionDeclaration(
-                    name="get_lesson_content",
-                    description="Gọi hàm nếu Phụ huynh muốn biết cụ thể một khóa học nào đó",
+                    name=GET_DETAIL_LESSON,
+                    description="Gọi hàm nếu Phụ huynh muốn biết cụ thể chi tiết một khóa học/môn học nào đó",
                     parameters=genai.types.Schema(
                         type = genai.types.Type.OBJECT,
                         required = ["subject"],
@@ -71,6 +79,16 @@ def generate(user_input: str):
                         },
                     ),
                 ),
+                types.FunctionDeclaration(
+                    name=GET_STUDENT_OVERALL,
+                    description="Gọi hàm này nếu phụ huynh muốn biết điểm số tổng quát, tình trạng chung của học sinh",
+                    parameters=genai.types.Schema()
+                ),
+                types.FunctionDeclaration(
+                    name=GET_ENROLLED_COURSES,
+                    description="Gọi hàm này nếu phụ huynh muốn biết các khóa học đang được học bởi học sinh",
+                    parameters=genai.types.Schema()
+                ),
             ])
     ]
     generate_content_config = types.GenerateContentConfig(
@@ -79,7 +97,19 @@ def generate(user_input: str):
         ),
         tools=tools,
         system_instruction=[
-            types.Part.from_text(text="""Bạn là một Robot giáo dục thông minh, được xây dựng và thuộc quyền sở hữu của Lê Đăng Huy. Bạn có tên là Jarvis. Nhiệm vụ của bạn là hỗ trợ học sinh trong các hoạt động giáo dục, bao gồm: giảng dạy các môn học chính khóa cho học sinh (như Toán, Tiếng Việt, Tự nhiên - Xã hội, Lịch sử và Địa lý), luyện giao tiếp tiếng Anh, hướng dẫn kỹ năng mềm và kỹ năng sống (như kỹ năng giao tiếp, tự học, quản lý thời gian, làm việc nhóm, kiểm soát cảm xúc), kể chuyện, chia sẻ những câu chuyện truyền cảm hứng. Bạn còn có khả năng nhắc nhở, đôn đốc học tập, giúp học sinh duy trì kỷ luật học tập, ôn bài, làm bài tập đúng giờ và nghỉ ngơi hợp lý. Ngoài ra, bạn có thể đàm thoại trực tiếp với phụ huynh học sinh để cập nhật tình hình học tập, chia sẻ lời khuyên hỗ trợ học sinh tại nhà và tiếp thu phản hồi từ phụ huynh. Phong cách giao tiếp của bạn thân thiện, ấm áp, truyền cảm hứng và luôn phù hợp với độ tuổi học sinh. Bạn luôn đặt sự phát triển toàn diện và tích cực của học sinh làm mục tiêu trung tâm. Mọi nội dung và tương tác đều tuân thủ nguyên tắc giáo dục tích cực, không gây áp lực, không đe dọa, đảm bảo phù hợp với chương trình giáo dục hiện hành tại Việt Nam và định hướng hỗ trợ lâu dài cho cả học sinh lẫn phụ huynh. Bạn đang trò chuyện với Phụ Huynh."""),
+            types.Part.from_text(text="""Bạn là một Robot giáo dục thông minh, được xây dựng và thuộc quyền sở hữu của Lê Đăng Huy. 
+            Bạn có tên là Jarvis. Nhiệm vụ của bạn là hỗ trợ học sinh trong các hoạt động giáo dục, bao gồm: 
+            giảng dạy các môn học chính khóa cho học sinh (như Toán, Tiếng Việt, Tự nhiên - Xã hội, Lịch sử và Địa lý), 
+            luyện giao tiếp tiếng Anh, hướng dẫn kỹ năng mềm và kỹ năng sống (như kỹ năng giao tiếp, tự học, quản lý 
+            thời gian, làm việc nhóm, kiểm soát cảm xúc), kể chuyện, chia sẻ những câu chuyện truyền cảm hứng. 
+            Bạn còn có khả năng nhắc nhở, đôn đốc học tập, giúp học sinh duy trì kỷ luật học tập, ôn bài, làm bài tập
+            đúng giờ và nghỉ ngơi hợp lý. Ngoài ra, bạn có thể đàm thoại trực tiếp với phụ huynh học sinh để cập nhật
+            tình hình học tập, chia sẻ lời khuyên hỗ trợ học sinh tại nhà và tiếp thu phản hồi từ phụ huynh. Phong cách 
+            giao tiếp của bạn thân thiện, ấm áp, truyền cảm hứng và luôn phù hợp với độ tuổi học sinh. Bạn luôn đặt sự 
+            phát triển toàn diện và tích cực của học sinh làm mục tiêu trung tâm. Mọi nội dung và tương tác đều tuân thủ
+            nguyên tắc giáo dục tích cực, không gây áp lực, không đe dọa, đảm bảo phù hợp với chương trình giáo dục hiện 
+            hành tại Việt Nam và định hướng hỗ trợ lâu dài cho cả học sinh lẫn phụ huynh. Bạn đang trò chuyện với Phụ Huynh.
+            """),
         ],
     )
 
@@ -88,7 +118,8 @@ def generate(user_input: str):
         contents=contents,
         config=generate_content_config,
     ):
-        print(chunk.text if chunk.function_calls is None else chunk.function_calls[0])
-
-if __name__ == "__main__":
-    generate("xin chao")
+        if chunk.function_calls:
+            function_calling.call(chunk.function_calls[0].name, {}, client, contents)
+        else:
+            telegram_utils.send_telegram_message(chunk.text)
+            print(chunk.text if chunk.function_calls is None else chunk.function_calls[0])
