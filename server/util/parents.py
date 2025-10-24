@@ -1,20 +1,17 @@
 # To run this code you need to install the following dependencies:
 # pip install google-genai
 
-import base64
 import os
-from typing import List
 
 from google import genai
 from google.genai import types
-from google.genai.types import FunctionCall
 
 from server.core.config import settings
 from server.util import telegram_utils, function_calling
 from server.util.function_calling import GET_STUDENT_OVERALL, GET_ALL_LESSON, GET_ENROLLED_COURSES, GET_DETAIL_LESSON
+from server.core import context_store
 
-
-def generate(user_input: str, history: List[types.Content]):
+def generate(user_input: str, system_instructions_promt: str):
     client = genai.Client(
         api_key=os.environ.get("GEMINI_API_KEY", settings.GEMINI_API_KEY),
     )
@@ -26,9 +23,7 @@ def generate(user_input: str, history: List[types.Content]):
             types.Part.from_text(text=user_input),
         ],
     )
-    contents = [
-        user_content,
-    ]
+    context_store.GLOBAL_CHAT_HISTORY.append(user_content)
     tools = [
         types.Tool(
             function_declarations=[
@@ -97,29 +92,29 @@ def generate(user_input: str, history: List[types.Content]):
         ),
         tools=tools,
         system_instruction=[
-            types.Part.from_text(text="""Bạn là một Robot giáo dục thông minh, được xây dựng và thuộc quyền sở hữu của Lê Đăng Huy. 
-            Bạn có tên là Jarvis. Nhiệm vụ của bạn là hỗ trợ học sinh trong các hoạt động giáo dục, bao gồm: 
-            giảng dạy các môn học chính khóa cho học sinh (như Toán, Tiếng Việt, Tự nhiên - Xã hội, Lịch sử và Địa lý), 
-            luyện giao tiếp tiếng Anh, hướng dẫn kỹ năng mềm và kỹ năng sống (như kỹ năng giao tiếp, tự học, quản lý 
-            thời gian, làm việc nhóm, kiểm soát cảm xúc), kể chuyện, chia sẻ những câu chuyện truyền cảm hứng. 
-            Bạn còn có khả năng nhắc nhở, đôn đốc học tập, giúp học sinh duy trì kỷ luật học tập, ôn bài, làm bài tập
-            đúng giờ và nghỉ ngơi hợp lý. Ngoài ra, bạn có thể đàm thoại trực tiếp với phụ huynh học sinh để cập nhật
-            tình hình học tập, chia sẻ lời khuyên hỗ trợ học sinh tại nhà và tiếp thu phản hồi từ phụ huynh. Phong cách 
-            giao tiếp của bạn thân thiện, ấm áp, truyền cảm hứng và luôn phù hợp với độ tuổi học sinh. Bạn luôn đặt sự 
-            phát triển toàn diện và tích cực của học sinh làm mục tiêu trung tâm. Mọi nội dung và tương tác đều tuân thủ
-            nguyên tắc giáo dục tích cực, không gây áp lực, không đe dọa, đảm bảo phù hợp với chương trình giáo dục hiện 
-            hành tại Việt Nam và định hướng hỗ trợ lâu dài cho cả học sinh lẫn phụ huynh. Bạn đang trò chuyện với Phụ Huynh.
-            """),
+            types.Part.from_text(text=system_instructions_promt),
         ],
     )
 
+    full_response_text = ""
+
     for chunk in client.models.generate_content_stream(
         model=model,
-        contents=contents,
+        contents=context_store.GLOBAL_CHAT_HISTORY,
         config=generate_content_config,
     ):
         if chunk.function_calls:
-            function_calling.call(chunk.function_calls[0].name, {}, client, contents)
+            function_calling.call(chunk.function_calls[0].name, {}, client, context_store.GLOBAL_CHAT_HISTORY)
         else:
-            telegram_utils.send_telegram_message(chunk.text)
-            print(chunk.text if chunk.function_calls is None else chunk.function_calls[0])
+            full_response_text += chunk.text
+
+    if full_response_text:
+        telegram_utils.send_telegram_message(full_response_text)
+        context_store.GLOBAL_CHAT_HISTORY.append(
+            types.Content(
+                role="model",
+                parts=[
+                    types.Part.from_text(text=full_response_text),
+                ]
+            )
+        )

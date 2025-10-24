@@ -1,7 +1,8 @@
-from typing import List
+from typing import List, Any
 
 from fastapi import APIRouter
 from google.genai.types import Content
+from fastapi import Request
 
 from server.models.telegram import *
 from server.util.parents import *
@@ -12,12 +13,14 @@ router = APIRouter(
     tags=["Hooks"]
 )
 
-IN_MEMORY_HISTORY: List[Content] = []
+@router.post("/message", response_model=None)
+async def notify_telegram_message(request: Request):
+    body = await request.json()
+    noti = TelegramUpdate.model_validate(body)
 
-@router.post("/message")
-def notify_telegram_message(noti: TelegramUpdate):
     if noti.message.chat.id == settings.TRACKED_CHAT_ID:
         message = noti.message.text
-        generate(message, IN_MEMORY_HISTORY)
-        return True
-    return False
+        generate(message, request.app.state.text_data)
+        return {"success": True}
+
+    return {"success": False}
