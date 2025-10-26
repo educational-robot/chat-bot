@@ -16,11 +16,13 @@ router = APIRouter(
 @router.post("/message", response_model=None)
 async def notify_telegram_message(request: Request):
     body = await request.json()
-    noti = TelegramUpdate.model_validate(body)
+    print('Received message:', body)
 
-    if noti.message.chat.id == settings.TRACKED_CHAT_ID:
-        message = noti.message.text
-        generate(message, request.app.state.text_data)
-        return {"success": True}
+    if 'message' in body:
+        noti = TelegramUpdate.model_validate(body)
+        if noti.message.chat.id == settings.TRACKED_CHAT_ID:
+            message = noti.message.text
+            generate(message, request.app.state.text_data)
+            return {"success": True}
 
     return {"success": False}

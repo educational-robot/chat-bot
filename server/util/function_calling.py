@@ -29,10 +29,15 @@ def call(function_name: str, args: dict, client: Client, history: List[Content])
             for course in api_response.json()
         ]
         # save history chat
-        history.append(types.Content(role="model", parts=[types.Part.from_function_call(name=GET_ALL_LESSON, args={})]))
-        history.append(types.Content(role="function", parts=[types.Part.from_function_response(
-                    name=GET_ALL_LESSON, response={'courses': courses}
-                )]))
+        history.append(types.Content(role="model", parts=[types.Part.from_function_call(name=GET_ALL_LESSON, args=args)]))
+        history.append(types.Content(role="function",
+                                     parts=[types.Part.from_function_response(
+                                         name=GET_ALL_LESSON,
+                                         response={
+                                             'description': 'Đây là thông tin toàn bộ khóa học hiện có của hệ thống với id, tên khóa, mô tả tương ứng.',
+                                             'courses': courses
+                                         }
+                                     )]))
 
         answer = client.models.generate_content(
             model=MODEL,
@@ -47,7 +52,7 @@ def call(function_name: str, args: dict, client: Client, history: List[Content])
         )
         # save history
         history.extend(
-            [types.Content(role="model", parts=[types.Part.from_function_call(name=GET_ALL_LESSON, args={})]),
+            [types.Content(role="model", parts=[types.Part.from_function_call(name=GET_STUDENT_OVERALL, args=args)]),
             types.Content(role="function", parts=[types.Part.from_function_response(
                 name=GET_ALL_LESSON, response={'overall': api_response.json()}
             )])]
@@ -66,7 +71,7 @@ def call(function_name: str, args: dict, client: Client, history: List[Content])
         )
         # save history
         history.extend([
-            types.Content(role="model", parts=[types.Part.from_function_call(name=GET_ALL_LESSON, args={})]),
+            types.Content(role="model", parts=[types.Part.from_function_call(name=GET_ENROLLED_COURSES, args=args)]),
             types.Content(role="function", parts=[types.Part.from_function_response(
                 name=GET_ALL_LESSON, response={'courses': api_response.json()}
             )]),
@@ -77,13 +82,13 @@ def call(function_name: str, args: dict, client: Client, history: List[Content])
         )
         telegram_utils.send_telegram_message(answer.text)
     elif function_name == GET_DETAIL_LESSON:
-        course_id = '68f506fdad0f33dd7afa2849'
+        course_id = args['course_id'] if args['course_id'] else '68f506fdad0f33dd7afa284a'
         api_response = requests.get(
             url=settings.LMS_BASE_URL + f"/public/courses/{course_id}/lessons/public",
         )
         # save history
         history.extend([
-            types.Content(role="model", parts=[types.Part.from_function_call(name=GET_ALL_LESSON, args={})]),
+            types.Content(role="model", parts=[types.Part.from_function_call(name=GET_DETAIL_LESSON, args=args)]),
             types.Content(role="function", parts=[types.Part.from_function_response(
                 name=GET_ALL_LESSON, response={'course_detail': api_response.json()}
             )]),
