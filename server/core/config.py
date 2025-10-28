@@ -11,5 +11,12 @@ class Settings:
 
     LMS_BASE_URL = os.getenv("LMS_BASE_URL", "")
     GEMINI_API_KEY = os.getenv("GEMINI_API_KEY", "")
+    STUDENT_NAME = os.getenv("STUDENT_NAME", "")
+
+    REDIS_HOST = os.getenv("REDIS_HOST", "localhost")
+    REDIS_PORT = int(os.getenv("REDIS_PORT", 6379))
+    REDIS_DB = int(os.getenv("REDIS_DB", 0))
+    REDIS_HISTORY_KEY = os.getenv("REDIS_HISTORY_KEY", "history_chat")
+    HISTORY_MODE = os.getenv("HISTORY_MODE", "redis")
 
 settings = Settings()

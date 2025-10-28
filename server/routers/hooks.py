@@ -22,7 +22,7 @@ async def notify_telegram_message(request: Request):
         noti = TelegramUpdate.model_validate(body)
         if noti.message.chat.id == settings.TRACKED_CHAT_ID:
             message = noti.message.text
-            generate(message, request.app.state.text_data)
+            generate(message, request.app.state.gemini_model)
             return {"success": True}
 
     return {"success": False}

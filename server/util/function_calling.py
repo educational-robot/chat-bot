@@ -6,13 +6,10 @@ from google.genai.types import Content
 
 from server.core.config import settings
 from server.util import telegram_utils
+from server.core.constants import *
 
 MODEL = "gemini-2.5-flash"
-# function list
-GET_ALL_LESSON = 'get_all_lesson'
-GET_STUDENT_OVERALL = 'get_student_overall'
-GET_ENROLLED_COURSES = 'get_enrolled_courses'
-GET_DETAIL_LESSON = "get_lesson_content"
+
 
 def call(function_name: str, args: dict, client: Client, history: List[Content]):
     print('function: ', function_name)
@@ -29,7 +26,8 @@ def call(function_name: str, args: dict, client: Client, history: List[Content])
             for course in api_response.json()
         ]
         # save history chat
-        history.append(types.Content(role="model", parts=[types.Part.from_function_call(name=GET_ALL_LESSON, args=args)]))
+        history.append(
+            types.Content(role="model", parts=[types.Part.from_function_call(name=GET_ALL_LESSON, args=args)]))
         history.append(types.Content(role="function",
                                      parts=[types.Part.from_function_response(
                                          name=GET_ALL_LESSON,
@@ -45,7 +43,7 @@ def call(function_name: str, args: dict, client: Client, history: List[Content])
         )
         telegram_utils.send_telegram_message(answer.text)
     elif function_name == GET_STUDENT_OVERALL:
-        student = 'Alice Johnson'
+        student = settings.STUDENT_NAME
         api_response = requests.get(
             url=settings.LMS_BASE_URL + f"/public/stats/student",
             params={"student_name": student}
@@ -53,9 +51,12 @@ def call(function_name: str, args: dict, client: Client, history: List[Content])
         # save history
         history.extend(
             [types.Content(role="model", parts=[types.Part.from_function_call(name=GET_STUDENT_OVERALL, args=args)]),
-            types.Content(role="function", parts=[types.Part.from_function_response(
-                name=GET_ALL_LESSON, response={'overall': api_response.json()}
-            )])]
+             types.Content(role="function", parts=[types.Part.from_function_response(
+                 name=GET_ALL_LESSON, response={
+                     'description': 'Đây là thông tin kết quả tổng quát của học sinh',
+                     'overall': api_response.json()
+                 }
+             )])]
         )
 
         answer = client.models.generate_content(
@@ -64,7 +65,7 @@ def call(function_name: str, args: dict, client: Client, history: List[Content])
         )
         telegram_utils.send_telegram_message(answer.text)
     elif function_name == GET_ENROLLED_COURSES:
-        student = 'Alice Johnson'
+        student = settings.STUDENT_NAME
         api_response = requests.get(
             url=settings.LMS_BASE_URL + f"/public/courses",
             params={"student_name": student}
@@ -73,7 +74,10 @@ def call(function_name: str, args: dict, client: Client, history: List[Content])
         history.extend([
             types.Content(role="model", parts=[types.Part.from_function_call(name=GET_ENROLLED_COURSES, args=args)]),
             types.Content(role="function", parts=[types.Part.from_function_response(
-                name=GET_ALL_LESSON, response={'courses': api_response.json()}
+                name=GET_ENROLLED_COURSES, response={
+                    'description': 'Đây là danh sách khóa học mà học sinh đã tham gia',
+                    'courses': api_response.json()
+                }
             )]),
         ])
         answer = client.models.generate_content(
@@ -94,6 +98,74 @@ def call(function_name: str, args: dict, client: Client, history: List[Content])
             )]),
         ])
 
+        answer = client.models.generate_content(
+            model=MODEL,
+            contents=history
+        )
+        telegram_utils.send_telegram_message(answer.text)
+    elif function_name == GET_STUDENT_CLASSROOM:
+        student = settings.STUDENT_NAME
+        api_response = requests.get(
+            url=settings.LMS_BASE_URL + f"/public/student/classrooms",
+            params={"student_name": student}
+        )
+        # save history
+        history.extend([
+            types.Content(role="model", parts=[types.Part.from_function_call(name=GET_STUDENT_CLASSROOM, args=args)]),
+            types.Content(role="function", parts=[types.Part.from_function_response(
+                name=GET_STUDENT_CLASSROOM, response={
+                    'description': 'Đây là thông tin lớp học của học sinh',
+                    'class_room': api_response.json()
+                }
+            )]),
+        ])
+        answer = client.models.generate_content(
+            model=MODEL,
+            contents=history
+        )
+        telegram_utils.send_telegram_message(answer.text)
+    elif function_name == GET_LEARN_SCHEDULE:
+        student = settings.STUDENT_NAME
+        api_response = requests.get(
+            url=settings.LMS_BASE_URL + f"/public/schedules/due",
+            params={"student_name": student}
+        )
+        # save history
+        history.extend([
+            types.Content(role="model", parts=[types.Part.from_function_call(name=GET_LEARN_SCHEDULE, args=args)]),
+            types.Content(role="function", parts=[types.Part.from_function_response(
+                name=GET_LEARN_SCHEDULE, response={
+                    'description': 'Đây là thông tin lịch học của học sinh',
+                    'schedules': api_response.json()
+                }
+            )]),
+        ])
+        answer = client.models.generate_content(
+            model=MODEL,
+            contents=history
+        )
+        telegram_utils.send_telegram_message(answer.text)
+    elif function_name == CREAT_LESSON_SCHEDULE:
+        student = settings.STUDENT_NAME
+        api_response = requests.post(
+            url=settings.LMS_BASE_URL + f"/public/schedules",
+            json={
+                "student_name": student,
+                "course_id": args['course_id'],
+                "lesson_id": args['lesson_id'],
+                "day_of_week": args['day_of_week'],
+                "time_hhmm": args['time_hhmm'],
+            }
+        )
+        history.extend([
+            types.Content(role="model", parts=[types.Part.from_function_call(name=CREAT_LESSON_SCHEDULE, args=args)]),
+            types.Content(role="function", parts=[types.Part.from_function_response(
+                name=CREAT_LESSON_SCHEDULE, response={
+                    'description': 'Đây là kết quả tạo lịch học cho học sinh',
+                    'schedules': api_response.json()
+                }
+            )]),
+        ])
         answer = client.models.generate_content(
             model=MODEL,
             contents=history
