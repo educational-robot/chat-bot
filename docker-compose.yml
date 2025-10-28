@@ -1,7 +1,21 @@
 version: '3.0'
 
 services:
+  redis:
+    image: 'redis:alpine'
+    container_name: 'redis-chat-bot'
+    networks:
+      - chat-bot-network
   telegram-hook:
-    image: 'telegram-hook:v0.0.1'
+    depends_on:
+      - redis
+    image: 'nguyentrminh/os-skkhkt:v0.0.1'
     container_name: 'telegram-hook'
+    networks:
+      - chat-bot-network
+    ports:
+      - "8000:8082"
 
+networks:
+  chat-bot-network:
+    driver: bridge
