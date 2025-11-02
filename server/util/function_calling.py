@@ -145,6 +145,32 @@ def call(function_name: str, args: dict, client: Client, history: List[Content])
             contents=history
         )
         telegram_utils.send_telegram_message(answer.text)
+    elif function_name == GET_CLASSROOM_ASSIGNMENT:
+        student = settings.STUDENT_NAME
+        classroom_response = requests.get(
+            url=settings.LMS_BASE_URL + f"/public/student/classrooms",
+            params={"student_name": student}
+        ).json()
+        print('classroom_response:', classroom_response)
+        classroom_id = classroom_response[0].get('classroom_id')
+        api_response = requests.get(
+            url=settings.LMS_BASE_URL + f"/assignments/classrooms/{classroom_id}/list",
+        )
+        # save history
+        history.extend([
+            types.Content(role="model", parts=[types.Part.from_function_call(name=GET_CLASSROOM_ASSIGNMENT, args=args)]),
+            types.Content(role="function", parts=[types.Part.from_function_response(
+                name=GET_CLASSROOM_ASSIGNMENT, response={
+                    'description': 'Đây là thông tin bài tập về nhà của học sinh',
+                    'assignments': api_response.json()
+                }
+            )]),
+        ])
+        answer = client.models.generate_content(
+            model=MODEL,
+            contents=history
+        )
+        telegram_utils.send_telegram_message(answer.text)
     elif function_name == CREAT_LESSON_SCHEDULE:
         student = settings.STUDENT_NAME
         api_response = requests.post(

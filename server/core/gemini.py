@@ -88,11 +88,16 @@ class GeminiModel:
                         parameters=genai.types.Schema(),
                     ),
                     types.FunctionDeclaration(
+                        name=GET_CLASSROOM_ASSIGNMENT,
+                        description="Gọi hàm này nếu phụ Huynh muốn biết bài tập về nhà của con",
+                        parameters=genai.types.Schema(),
+                    ),
+                    types.FunctionDeclaration(
                         name=CREAT_LESSON_SCHEDULE,
-                        description="Gọi hàm này nếu phụ huynh muốn tạo thời gian biểu hoặc lịch học cho con",
+                        description="Gọi hàm này nếu phụ huynh muốn tạo thời gian biểu hoặc lịch học cho con. Thứ tự ngày trong tuần (day_of_week) 0 -> 6, tương ứng giá trị như sau Chủ nhật=0 đến thứ Hai=1 cho đến thứ Bảy=6",
                         parameters=genai.types.Schema(
                             type=genai.types.Type.OBJECT,
-                            required=["course_id", "lesson_id", "day_of_week"],
+                            required=["course_id", "lesson_id", "day_of_week", "time_hhmm"],
                             properties={
                                 "course_id": genai.types.Schema(
                                     type=genai.types.Type.STRING,
@@ -104,7 +109,7 @@ class GeminiModel:
                                 ),
                                 "day_of_week": genai.types.Schema(
                                     type=genai.types.Type.NUMBER,
-                                    description="Thứ tự ngày trong tuần 0 -> 6, tương ứng từ Chủ nhật đến thứ Hai cho đến thứ Bảy"
+                                    description="Thứ tự ngày trong tuần 0 -> 6, tương ứng giá trị như sau Chủ nhật=0 đến thứ Hai=1 cho đến thứ Bảy=6"
                                 ),
                                 "time_hhmm": genai.types.Schema(
                                     type=genai.types.Type.STRING,

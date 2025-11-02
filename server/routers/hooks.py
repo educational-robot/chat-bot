@@ -5,7 +5,7 @@ from google.genai.types import Content
 from fastapi import Request
 
 from server.models.telegram import *
-from server.util.parents import *
+from server.util.gemini_utils import *
 from server.core.config import settings
 
 router = APIRouter(

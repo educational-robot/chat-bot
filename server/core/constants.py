@@ -7,6 +7,7 @@ GET_ENROLLED_COURSES = 'get_enrolled_courses'
 GET_DETAIL_LESSON = "get_lesson_content"
 GET_STUDENT_CLASSROOM = "get_student_classroom"
 GET_LEARN_SCHEDULE = "get_lesson_schedule"
+GET_CLASSROOM_ASSIGNMENT = "get_classroom_assignment"
 CREAT_LESSON_SCHEDULE = "create_lesson_schedule"
 
 class HistoryMode(Enum):
