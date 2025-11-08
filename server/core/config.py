@@ -19,4 +19,7 @@ class Settings:
     REDIS_HISTORY_KEY = os.getenv("REDIS_HISTORY_KEY", "history_chat")
     HISTORY_MODE = os.getenv("HISTORY_MODE", "redis")
 
+    ROBOT_SUPPORT_URL = os.getenv("ROBOT_SUPPORT_URL", "")
+    ROBOT_SUPPORT_API_KEY = os.getenv("ROBOT_SUPPORT_API_KEY", "")
+
 settings = Settings()

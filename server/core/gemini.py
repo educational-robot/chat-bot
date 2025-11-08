@@ -118,6 +118,16 @@ class GeminiModel:
                             },
                         ),
                     ),
+                    types.FunctionDeclaration(
+                        name=TAKE_PICTURE_FROM_WEBCAM,
+                        description="Gọi hàm này nếu phụ Huynh muốn chụp ảnh từ webcam từ robot mà học sinh đang học",
+                        parameters=genai.types.Schema(),
+                    ),
+                    types.FunctionDeclaration(
+                        name=TAKE_VIDEO_FROM_WEBCAM,
+                        description="Gọi hàm này nếu phụ Huynh muốn quay hình hoặc xem một đoạn ghi hình từ webcam từ robot mà học sinh đang học",
+                        parameters=genai.types.Schema(),
+                    ),
                 ])
         ]
         self.generate_content_config = types.GenerateContentConfig(

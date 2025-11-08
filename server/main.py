@@ -1,5 +1,4 @@
 from contextlib import asynccontextmanager
-from typing import List
 
 from starlette.datastructures import State
 

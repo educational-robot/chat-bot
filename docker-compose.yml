@@ -16,7 +16,7 @@ services:
     networks:
       - chat-bot-network
     ports:
-      - "8000:8082"
+      - "8083:8082"
 
 networks:
   chat-bot-network:

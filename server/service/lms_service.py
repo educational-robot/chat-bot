@@ -20,12 +20,16 @@ class LmsService:
         lesson = Lesson.model_validate(response.json())
         return lesson
 
-    def get_due_schedule(self) -> List[Schedule]:
+    def get_due_schedule(self) -> List[Schedule] | None:
         response = requests.get(
             url=settings.LMS_BASE_URL + f"/public/schedules/due",
             params={"student_name": self.student_name}
         )
         adapter = TypeAdapter(list[Schedule])
-        schedules = adapter.validate_python(response.json())
+        try:
+            schedules = adapter.validate_python(response.json())
+            return [item for item in schedules if item.lesson_id is not None]
+        except Exception as e:
+            print('Cannot get schedules due to error:', e)
 
-        return schedules
+        return None

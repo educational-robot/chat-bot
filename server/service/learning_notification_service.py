@@ -39,22 +39,24 @@ class LearningNotificationService:
 
     def scan_schedule(self):
         schedules = self.lms_service.get_due_schedule()
-        for schedule in schedules:
-            telegram_schedule = schedule_mapper.to_telegram_schedule(schedule)
-            if telegram_schedule.due_time >= datetime.now():
-                print('TODO notify now')
-            else:
-                self.scheduler.add_job(
-                    lesson_notification_job,
-                    'cron',
-                    hour=telegram_schedule.due_time.hour,
-                    minute=telegram_schedule.due_time.minute,
-                    id="daily_greeting",
-                    kwargs={"course_name": telegram_schedule.course_name,
-                            "lesson_name": telegram_schedule.lesson_name,
-                            "due_time": telegram_schedule.due_time},
-                    replace_existing=True
-                )
+
+        if schedules:
+            for schedule in schedules:
+                telegram_schedule = schedule_mapper.to_telegram_schedule(schedule)
+                if telegram_schedule.due_time >= datetime.now():
+                    print('TODO notify now')
+                else:
+                    self.scheduler.add_job(
+                        lesson_notification_job,
+                        'cron',
+                        hour=telegram_schedule.due_time.hour,
+                        minute=telegram_schedule.due_time.minute,
+                        id="daily_greeting",
+                        kwargs={"course_name": telegram_schedule.course_name,
+                                "lesson_name": telegram_schedule.lesson_name,
+                                "due_time": telegram_schedule.due_time},
+                        replace_existing=True
+                    )
 
     # Called only on start-up
     def schedule_daily_scan(self):

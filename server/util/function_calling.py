@@ -5,11 +5,12 @@ from google.genai import Client, types
 from google.genai.types import Content
 
 from server.core.config import settings
+from server.service.robot_support_utils_service import RobotSupportUtilsService
 from server.util import telegram_utils
 from server.core.constants import *
 
 MODEL = "gemini-2.5-flash"
-
+robot_support_utils_service = RobotSupportUtilsService()
 
 def call(function_name: str, args: dict, client: Client, history: List[Content]):
     print('function: ', function_name)
@@ -197,3 +198,11 @@ def call(function_name: str, args: dict, client: Client, history: List[Content])
             contents=history
         )
         telegram_utils.send_telegram_message(answer.text)
+    elif function_name == TAKE_PICTURE_FROM_WEBCAM:
+        image_bytes = robot_support_utils_service.take_picture()
+        if image_bytes:
+            telegram_utils.send_photo_message(image_bytes, 'Đây là ảnh chụp từ webcam')
+    elif function_name == TAKE_VIDEO_FROM_WEBCAM:
+        image_bytes = robot_support_utils_service.take_video()
+        if image_bytes:
+            telegram_utils.send_video_message(image_bytes, 'Đây là video từ webcam')
