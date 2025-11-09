@@ -6,6 +6,8 @@ services:
     container_name: 'redis-chat-bot'
     networks:
       - chat-bot-network
+    ports:
+      - "6380:6379"
   telegram-hook:
     depends_on:
       - redis

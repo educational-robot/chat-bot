@@ -1,5 +1,6 @@
 from typing import List
 
+import redis
 import requests
 from google.genai import Client, types
 from google.genai.types import Content
@@ -199,10 +200,10 @@ def call(function_name: str, args: dict, client: Client, history: List[Content])
         )
         telegram_utils.send_telegram_message(answer.text)
     elif function_name == TAKE_PICTURE_FROM_WEBCAM:
-        image_bytes = robot_support_utils_service.take_picture()
-        if image_bytes:
-            telegram_utils.send_photo_message(image_bytes, 'Đây là ảnh chụp từ webcam')
+        telegram_utils.send_telegram_message('Phụ huynh vui lòng đợi trong giây lát')
+        r = redis.Redis(host=settings.REDIS_HOST, port=settings.REDIS_PORT, decode_responses=True)
+        r.publish(settings.REDIS_SUBSCRIBE_CHANNEL, 'take_picture')
     elif function_name == TAKE_VIDEO_FROM_WEBCAM:
-        image_bytes = robot_support_utils_service.take_video()
-        if image_bytes:
-            telegram_utils.send_video_message(image_bytes, 'Đây là video từ webcam')
+        telegram_utils.send_telegram_message('Phụ huynh vui lòng đợi trong giây lát')
+        r = redis.Redis(host=settings.REDIS_HOST, port=settings.REDIS_PORT, decode_responses=True)
+        r.publish(settings.REDIS_SUBSCRIBE_CHANNEL, 'take_video')
