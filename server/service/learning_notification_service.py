@@ -1,34 +1,29 @@
 from datetime import datetime
 
 from apscheduler.schedulers.background import BackgroundScheduler
-from google.genai import types
 
 from server.mapper import schedule_mapper
-from server.service.lms_service import LmsService
-from server.util import gemini_utils, telegram_utils
+from server.service.gemini.gemini_service import gemini_service
+from server.service.lms.lms_service import LmsService
+from server.service.telegram.telegram_service import telegram_service
+from server.util import gemini_utils
 
 
 def lesson_notification_job(course_name: str, lesson_name: str, due_time: datetime):
+    print("on lesson_notification_job...")
     contents = [
-        types.Content(
-            role="user",
-            parts=[
-                types.Part.from_text(
-                    text=(
-                        "Bạn là một hệ thống gửi thông báo học tập.\n"
-                        "Hãy tạo một tin nhắn thân thiện để thông báo cho phụ huynh về buổi học sắp tới của học sinh"
-                        "dựa theo thông tin sau:\n\n"
-                        f"Khóa học: {course_name}\n"
-                        f"Bài học: {lesson_name}\n"
-                        f"Thời gian bắt đầu: {due_time}\n"
-                        "Yêu cầu: Hãy viết nội dung ngắn gọn, thân thiện, dễ hiểu."
-                    )
-                )
-            ]
+        gemini_utils.create_user_content(
+            "Bạn là một hệ thống gửi thông báo học tập.\n"
+            "Hãy tạo một tin nhắn thân thiện để thông báo cho phụ huynh về buổi học sắp tới của học sinh"
+            "dựa theo thông tin sau:\n\n"
+            f"Khóa học: {course_name}\n"
+            f"Bài học: {lesson_name}\n"
+            f"Thời gian bắt đầu: {due_time}\n"
+            "Yêu cầu: Hãy viết nội dung ngắn gọn, thân thiện, dễ hiểu."
         )
     ]
-    message = gemini_utils.generate_single_message(contents)
-    telegram_utils.send_telegram_message(message)
+    message = gemini_service.generate_simple_message(contents)
+    telegram_service.send_message(message)
 
 class LearningNotificationService:
 
@@ -38,14 +33,20 @@ class LearningNotificationService:
         pass
 
     def scan_schedule(self):
+        print("scan_schedule")
         schedules = self.lms_service.get_due_schedule()
 
         if schedules:
             for schedule in schedules:
+                print("schedule", schedule)
                 telegram_schedule = schedule_mapper.to_telegram_schedule(schedule)
+                if telegram_schedule is None:
+                    print("Failed to create schedule")
+                    continue
                 if telegram_schedule.due_time >= datetime.now():
                     print('TODO notify now')
                 else:
+                    print("scheduling")
                     self.scheduler.add_job(
                         lesson_notification_job,
                         'cron',
@@ -57,9 +58,11 @@ class LearningNotificationService:
                                 "due_time": telegram_schedule.due_time},
                         replace_existing=True
                     )
+                    print("done scheduling")
 
     # Called only on start-up
     def schedule_daily_scan(self):
+        print("schedule_daily_scan")
         self.scheduler.add_job(
             self.scan_schedule,
             'cron',

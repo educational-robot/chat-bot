@@ -1,3 +1,6 @@
+from datetime import timezone, timedelta, datetime
+from typing import List
+
 from google import genai
 from google.genai import types
 
@@ -5,8 +8,8 @@ from server.core.config import settings
 from server.core.constants import *
 
 
-class GeminiModel:
-    def __init__(self, system_instructions_promt: str):
+class Gemini:
+    def __init__(self, system_instructions_prompt: str):
         self.client = genai.Client(
             api_key=settings.GEMINI_API_KEY,
         )
@@ -130,12 +133,31 @@ class GeminiModel:
                     ),
                 ])
         ]
-        self.generate_content_config = types.GenerateContentConfig(
+        self.system_instructions_prompt = system_instructions_prompt
+
+    def generate_main_content(self, history: List[types.Content]):
+        # enhance system prompt with current time
+        now = datetime.now(timezone(timedelta(hours=7))).strftime("%Y-%m-%d %H:%M:%S")
+        print('now:' + now)
+        main_generate_content_config = types.GenerateContentConfig(
             thinking_config=types.ThinkingConfig(
                 thinking_budget=0,
             ),
             tools=self.tools,
             system_instruction=[
-                types.Part.from_text(text=system_instructions_promt),
+                types.Part.from_text(text=f'{self.system_instructions_prompt} '
+                                          f'Thời gian hiện tại (GMT+7): {now}'),
             ],
+        )
+
+        return self.client.models.generate_content(
+                model=self.model,
+                contents=history,
+                config=main_generate_content_config,
+        )
+
+    def generate_simple_message(self, contents: List[types.Content]):
+        return self.client.models.generate_content(
+            model=self.model,
+            contents=contents
         )

@@ -1,12 +1,9 @@
-from typing import List, Any
-
 from fastapi import APIRouter
-from google.genai.types import Content
 from fastapi import Request
 
-from server.models.telegram import *
-from server.util.gemini_utils import *
 from server.core.config import settings
+from server.models.telegram import *
+from server.service.gemini.gemini_service import gemini_service
 
 router = APIRouter(
     prefix="/hooks",
@@ -22,7 +19,7 @@ async def notify_telegram_message(request: Request):
         noti = TelegramUpdate.model_validate(body)
         if noti.message.chat.id == settings.TRACKED_CHAT_ID:
             message = noti.message.text
-            generate(message, request.app.state.gemini_model)
+            gemini_service.handle_user_message(message)
             return {"success": True}
 
     return {"success": False}

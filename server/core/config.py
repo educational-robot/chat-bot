@@ -12,7 +12,9 @@ class Settings:
     LMS_BASE_URL = os.getenv("LMS_BASE_URL", "")
     GEMINI_API_KEY = os.getenv("GEMINI_API_KEY", "")
     STUDENT_NAME = os.getenv("STUDENT_NAME", "")
+    SYSTEM_PROMPT_PATH = os.getenv("SYSTEM_PROMPT_PATH", "")
 
+    MAX_LENGTH_HISTORY = int(os.getenv("MAX_LENGTH_HISTORY", 50))
     REDIS_HOST = os.getenv("REDIS_HOST", "localhost")
     REDIS_PORT = int(os.getenv("REDIS_PORT", 6379))
     REDIS_DB = int(os.getenv("REDIS_DB", 0))
