@@ -1,12 +1,14 @@
 from datetime import datetime
 
 from apscheduler.schedulers.background import BackgroundScheduler
+from apscheduler.jobstores.base import JobLookupError
 
 from server.mapper import schedule_mapper
 from server.service.gemini.gemini_service import gemini_service
 from server.service.lms.lms_service import LmsService
 from server.service.telegram.telegram_service import telegram_service
 from server.util import gemini_utils
+from server.util.timezone_utils import get_vietnam_timezone, get_vietnam_now
 
 
 def lesson_notification_job(course_name: str, lesson_name: str, due_time: datetime):
@@ -29,7 +31,10 @@ class LearningNotificationService:
 
     def __init__(self):
         self.lms_service = LmsService()
-        self.scheduler = BackgroundScheduler()
+        # Set timezone Việt Nam cho scheduler
+        vn_tz = get_vietnam_timezone()
+        self.scheduler = BackgroundScheduler(timezone=vn_tz)
+        self.scheduler.start()
         pass
 
     def scan_schedule(self):
@@ -43,22 +48,29 @@ class LearningNotificationService:
                 if telegram_schedule is None:
                     print("Failed to create schedule")
                     continue
-                if telegram_schedule.due_time >= datetime.now():
+                # So sánh với thời gian hiện tại theo múi giờ Việt Nam
+                now_vn = get_vietnam_now()
+                if telegram_schedule.due_time >= now_vn:
                     print('TODO notify now')
                 else:
                     print("scheduling")
-                    self.scheduler.add_job(
-                        lesson_notification_job,
-                        'cron',
-                        hour=telegram_schedule.due_time.hour,
-                        minute=telegram_schedule.due_time.minute,
-                        id="daily_greeting",
-                        kwargs={"course_name": telegram_schedule.course_name,
-                                "lesson_name": telegram_schedule.lesson_name,
-                                "due_time": telegram_schedule.due_time},
-                        replace_existing=True
-                    )
-                    print("done scheduling")
+                    # Tạo job ID unique cho mỗi schedule
+                    job_id = f"lesson_notification_{schedule.id}"
+                    try:
+                        self.scheduler.add_job(
+                            lesson_notification_job,
+                            'cron',
+                            hour=telegram_schedule.due_time.hour,
+                            minute=telegram_schedule.due_time.minute,
+                            id=job_id,
+                            kwargs={"course_name": telegram_schedule.course_name,
+                                    "lesson_name": telegram_schedule.lesson_name,
+                                    "due_time": telegram_schedule.due_time},
+                            replace_existing=True
+                        )
+                        print(f"done scheduling job {job_id} at {telegram_schedule.due_time}")
+                    except Exception as e:
+                        print(f"Error scheduling job {job_id}: {e}")
 
     # Called only on start-up
     def schedule_daily_scan(self):

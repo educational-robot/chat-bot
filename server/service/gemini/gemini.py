@@ -1,4 +1,6 @@
 from datetime import timezone, timedelta, datetime
+
+from server.util.timezone_utils import get_vietnam_timezone, get_vietnam_now
 from typing import List
 
 from google import genai
@@ -136,9 +138,9 @@ class Gemini:
         self.system_instructions_prompt = system_instructions_prompt
 
     def generate_main_content(self, history: List[types.Content]):
-        # enhance system prompt with current time
-        now = datetime.now(timezone(timedelta(hours=7))).strftime("%Y-%m-%d %H:%M:%S")
-        print('now:' + now)
+        # enhance system prompt with current time (múi giờ Việt Nam)
+        now = get_vietnam_now().strftime("%Y-%m-%d %H:%M:%S")
+        print('now (VN timezone):', now)
         main_generate_content_config = types.GenerateContentConfig(
             thinking_config=types.ThinkingConfig(
                 thinking_budget=0,

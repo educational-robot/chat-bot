@@ -40,9 +40,20 @@ class GeminiService:
             result = self.gemini.generate_main_content(context_store.GLOBAL_CHAT_HISTORY)
 
             if result.function_calls:
-                print('function call number: ', len(result.function_calls))
-                self.function_calling_handler.handler(result.function_calls[0].name, result.function_calls[0].args,
-                                                      context_store.GLOBAL_CHAT_HISTORY)
+                print(f'[DEBUG] GeminiService - Function call detected, number: {len(result.function_calls)}')
+                for idx, func_call in enumerate(result.function_calls):
+                    print(f'[DEBUG] GeminiService - Function call #{idx+1}: name={func_call.name}, args={func_call.args}')
+                
+                first_func_call = result.function_calls[0]
+                print(f'[DEBUG] GeminiService - Processing function: {first_func_call.name}')
+                print(f'[DEBUG] GeminiService - Function args: {first_func_call.args}')
+                
+                self.function_calling_handler.handler(
+                    first_func_call.name, 
+                    first_func_call.args,
+                    context_store.GLOBAL_CHAT_HISTORY
+                )
+                print(f'[DEBUG] GeminiService - Function handler completed for: {first_func_call.name}')
             elif result.text:
                 try:
                     self.telegram_service.send_message(result.text)
