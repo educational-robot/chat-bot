@@ -1,4 +1,4 @@
-VERSION=v0.0.1
+VERSION=v0.0.11
 
-docker build -t nguyentrminh/os-skkhkt:$VERSION .
-docker push nguyentrminh/os-skkhkt:$VERSION
+docker build --platform linux/amd64 -t tugjabg/os-skkhkt:$VERSION .
+docker push tugjabg/os-skkhkt:$VERSION

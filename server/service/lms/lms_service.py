@@ -79,9 +79,10 @@ class LmsService:
     def get_classroom_assignment(self, classroom_id: str):
         print(f'[DEBUG] LmsService.get_classroom_assignment - Starting...')
         print(f'[DEBUG] LmsService.get_classroom_assignment - classroom_id: {classroom_id} (type: {type(classroom_id)})')
+        print(f'[DEBUG] LmsService.get_classroom_assignment - student_name: {self.student_name}')
         print(f'[DEBUG] LmsService.get_classroom_assignment - base_url: {self.base_url}')
         
-        url = self.base_url + f"/assignments/classrooms/{classroom_id}/list"
+        url = self.base_url + f"/assignments/classrooms/{classroom_id}/list?student_name={self.student_name}"
         print(f'[DEBUG] LmsService.get_classroom_assignment - Full URL: {url}')
         
         try:
@@ -124,20 +125,66 @@ class LmsService:
             print(f'[ERROR] LmsService.get_classroom_assignment - Traceback: {traceback.format_exc()}')
             return {"error": "Unexpected error", "message": f"Lỗi không xác định: {str(e)}"}
 
+    def get_assignment_submission(self, assignment_id: str):
+        print(f'[DEBUG] LmsService.get_assignment_submission - Starting...')
+        print(f'[DEBUG] LmsService.get_assignment_submission - assignment_id: {assignment_id} (type: {type(assignment_id)})')
+        print(f'[DEBUG] LmsService.get_assignment_submission - student_name: {self.student_name}')
+        print(f'[DEBUG] LmsService.get_assignment_submission - base_url: {self.base_url}')
+        
+        url = self.base_url + f"/public/assignments/{assignment_id}/submission?student_name={self.student_name}"
+        print(f'[DEBUG] LmsService.get_assignment_submission - Full URL: {url}')
+        
+        try:
+            response = requests.get(
+                url=url,
+                timeout=30
+            )
+            
+            print(f'[DEBUG] LmsService.get_assignment_submission - Response status code: {response.status_code}')
+            print(f'[DEBUG] LmsService.get_assignment_submission - Response headers: {dict(response.headers)}')
+            
+            try:
+                response_json = response.json()
+                print(f'[DEBUG] LmsService.get_assignment_submission - Response body: {response_json}')
+            except Exception as json_error:
+                print(f'[ERROR] LmsService.get_assignment_submission - Cannot parse JSON response: {json_error}')
+                print(f'[ERROR] LmsService.get_assignment_submission - Response text: {response.text[:500]}')
+                return {"error": "Invalid JSON response", "status_code": response.status_code, "text": response.text[:200]}
+            
+            if response.status_code >= 400:
+                print(f'[ERROR] LmsService.get_assignment_submission - API returned error status: {response.status_code}')
+                print(f'[ERROR] LmsService.get_assignment_submission - Error response: {response_json}')
+                return response_json
+            
+            print(f'[DEBUG] LmsService.get_assignment_submission - Success!')
+            return response_json
+            
+        except requests.exceptions.Timeout:
+            print(f'[ERROR] LmsService.get_assignment_submission - Request timeout')
+            return {"error": "Request timeout", "message": "LMS API không phản hồi trong thời gian cho phép"}
+        except requests.exceptions.ConnectionError as e:
+            print(f'[ERROR] LmsService.get_assignment_submission - Connection error: {e}')
+            return {"error": "Connection error", "message": f"Không thể kết nối đến LMS API: {str(e)}"}
+        except requests.exceptions.RequestException as e:
+            print(f'[ERROR] LmsService.get_assignment_submission - Request exception: {e}')
+            return {"error": "Request failed", "message": f"Lỗi khi gọi LMS API: {str(e)}"}
+        except Exception as e:
+            print(f'[ERROR] LmsService.get_assignment_submission - Unexpected error: {type(e).__name__}: {e}')
+            import traceback
+            print(f'[ERROR] LmsService.get_assignment_submission - Traceback: {traceback.format_exc()}')
+            return {"error": "Unexpected error", "message": f"Lỗi không xác định: {str(e)}"}
+
     def get_student_classroom(self):
         print(f'[DEBUG] LmsService.get_student_classroom - Starting...')
         print(f'[DEBUG] LmsService.get_student_classroom - student_name: {self.student_name}')
         print(f'[DEBUG] LmsService.get_student_classroom - base_url: {self.base_url}')
         
-        url = self.base_url + f"/public/student/classrooms"
-        params = {"student_name": self.student_name}
+        url = self.base_url + f"/public/student/classrooms?student_name={self.student_name}"
         print(f'[DEBUG] LmsService.get_student_classroom - Full URL: {url}')
-        print(f'[DEBUG] LmsService.get_student_classroom - Params: {params}')
         
         try:
             response = requests.get(
                 url=url,
-                params=params,
                 timeout=30
             )
             
@@ -219,15 +266,12 @@ class LmsService:
         print(f'[DEBUG] LmsService.get_due_schedule - student_name: {self.student_name}')
         print(f'[DEBUG] LmsService.get_due_schedule - base_url: {self.base_url}')
         
-        url = self.base_url + f"/public/schedules/due"
-        params = {"student_name": self.student_name}
+        url = self.base_url + f"/public/schedules/due?student_name={self.student_name}"
         print(f'[DEBUG] LmsService.get_due_schedule - Full URL: {url}')
-        print(f'[DEBUG] LmsService.get_due_schedule - Params: {params}')
         
         try:
             response = requests.get(
                 url=url,
-                params=params,
                 timeout=30
             )
             

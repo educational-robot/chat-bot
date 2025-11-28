@@ -84,7 +84,7 @@ class Gemini:
                     ),
                     types.FunctionDeclaration(
                         name=GET_STUDENT_CLASSROOM,
-                        description="Gọi hàm này nếu phụ Huynh muốn biết thông tin lớp học của học sinh",
+                        description="Gọi hàm này CHỈ KHI phụ huynh lần đầu yêu cầu xem kết quả học tập hoặc thông tin lớp học. Hàm này trả về danh sách các lớp học mà học sinh đang tham gia. QUAN TRỌNG: Nếu đã gọi hàm này trước đó và phụ huynh đã chọn lớp học cụ thể (ví dụ: 'lớp 8a1'), KHÔNG GỌI LẠI hàm này, mà hãy gọi get_classroom_assignment với classroom_id từ lịch sử chat.",
                         parameters=genai.types.Schema(),
                     ),
                     types.FunctionDeclaration(
@@ -94,8 +94,22 @@ class Gemini:
                     ),
                     types.FunctionDeclaration(
                         name=GET_CLASSROOM_ASSIGNMENT,
-                        description="Gọi hàm này nếu phụ Huynh muốn biết bài tập về nhà của con",
+                        description="Gọi hàm này NGAY LẬP TỨC khi: (1) Phụ huynh đã chọn lớp học cụ thể sau khi đã gọi get_student_classroom (ví dụ: phụ huynh nói 'lớp 8a1', 'cho tôi xem kết quả học tập của lớp 8a1'), HOẶC (2) Phụ huynh trực tiếp yêu cầu xem bài tập. Hàm này tự động lấy classroom_id từ lịch sử chat (từ kết quả get_student_classroom) và trả về danh sách bài tập. QUAN TRỌNG: Nếu trong lịch sử chat đã có kết quả get_student_classroom và phụ huynh đề cập đến tên lớp, hãy match tên lớp với classroom_id trong history và gọi hàm này ngay.",
                         parameters=genai.types.Schema(),
+                    ),
+                    types.FunctionDeclaration(
+                        name=GET_ASSIGNMENT_SUBMISSION,
+                        description="GỌI HÀM NÀY NGAY LẬP TỨC - KHÔNG HỎI LẠI - khi phụ huynh: (1) Đề cập đến tên bài tập (ví dụ: 'Trắc nghiệm Tiếng Anh 8 Unit 1', 'toán 11', 'bài tập toán 11'), (2) Đề cập đến số thứ tự bài tập (ví dụ: 'bài tập số 1', 'bài 1', 'số 1'), (3) Nói 'đúng' sau khi đã được hỏi về bài tập, (4) Bất kỳ câu nào có từ khóa liên quan đến bài tập. QUAN TRỌNG TUYỆT ĐỐI: KHÔNG BAO GIỜ hỏi lại 'Anh/chị muốn xem kết quả của bài tập nào?', KHÔNG BAO GIỜ lặp lại danh sách bài tập. PHẢI tự động gọi hàm này ngay khi phụ huynh chọn bài tập. Hàm này tự động match bài tập theo tên hoặc số thứ tự từ lịch sử chat.",
+                        parameters=genai.types.Schema(
+                            type=genai.types.Type.OBJECT,
+                            required=[],
+                            properties={
+                                "assignment_id": genai.types.Schema(
+                                    type=genai.types.Type.STRING,
+                                    description="ID của bài tập (optional). Có thể để trống hoặc không truyền, hàm sẽ tự động match theo tên bài tập hoặc số thứ tự từ lịch sử chat."
+                                ),
+                            },
+                        ),
                     ),
                     types.FunctionDeclaration(
                         name=CREAT_LESSON_SCHEDULE,
